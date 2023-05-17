@@ -5,33 +5,30 @@ import keras
 from keras.models import Sequential, Model
 from keras.layers import Conv2D, Conv2DTranspose, Dropout, Dense, BatchNormalization, LeakyReLU, Reshape, Flatten
 
-def build_generator_model():
+def build_generator_model(noise_img_dim : int, n_classes : int):
     model = Sequential()
-    model.add(Dense(7*7*32, use_bias=False, input_shape=(100,)))
+    model.add(Conv2DTranspose(filters=32, kernel_size=3, strides=2, padding='same', use_bias=False))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
     
-    model.add(Reshape((7, 7, 32)))
-    assert model.output_shape == (None, 7, 7, 32), 'Invalid output shape'
-    
-    model.add(Conv2DTranspose(filters=128, kernel_size=5, strides=1, padding='same', use_bias=False))
+    model.add(Conv2DTranspose(filters=64, kernel_size=5, strides=1, padding='same', use_bias=False))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
     
-    model.add(Conv2DTranspose(filters=64, kernel_size=5, strides=2, padding='same', use_bias=False))
+    model.add(Conv2DTranspose(filters=128, kernel_size=5, strides=2, padding='same', use_bias=False))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
     
-    model.add(Conv2DTranspose(filters=32, kernel_size=5, strides=2, padding='same', use_bias=False))
+    model.add(Conv2DTranspose(filters=64, kernel_size=5, strides=1, padding='same', use_bias=False))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
     
-    model.add(Conv2DTranspose(filters=1, kernel_size=5, strides=1, padding='same', use_bias=False, activation='sigmoid'))
+    model.add(Conv2DTranspose(filters=1, kernel_size=1, strides=1, padding='same', use_bias=False, activation='sigmoid'))
     
-    assert model.output_shape == (None, 28, 28, 1)
+    model.build((None, noise_img_dim, noise_img_dim, n_classes-1))
     return model
 
-def build_discriminator_model():
+def build_discriminator_model(n_classes : int):
     model = Sequential()
     model.add(Conv2D(filters=218, kernel_size=5, strides=2, padding='same', input_shape=(28, 28, 1)))
     model.add(LeakyReLU())
@@ -46,13 +43,13 @@ def build_discriminator_model():
     model.add(Dropout(0.2))
     
     model.add(Flatten())
-    model.add(Dense(1, activation='sigmoid'))
+    model.add(Dense(n_classes, activation='softmax'))
     return model
 
-def discriminator_loss(real_output, fake_output):
-    real_loss = tf.keras.losses.binary_crossentropy(tf.ones_like(real_output), real_output)
-    fake_loss = tf.keras.losses.binary_crossentropy(tf.zeros_like(fake_output), fake_output)
-    total_loss = real_loss + fake_loss
+def discriminator_loss(real_preds, real_y, fake_preds, fake_y):
+    real_loss = tf.keras.losses.sparse_categorical_crossentropy(real_y, real_preds)
+    fake_loss = tf.keras.losses.sparse_categorical_crossentropy(tf.zeros_like(fake_y), fake_preds)
+    total_loss = (real_loss + fake_loss) * 0.5
     return total_loss
 
 def discriminator_accuracy(real, fake):
@@ -63,8 +60,8 @@ def discriminator_accuracy(real, fake):
     f_fake_acc = tf.math.reduce_mean(fake_acc)
     return (f_real_acc + f_fake_acc) / 2
 
-def generator_loss(fake_output):
-    return tf.keras.losses.binary_crossentropy(tf.ones_like(fake_output), fake_output)
+def generator_loss(fake_output, fake_y):
+    return tf.keras.losses.sparse_categorical_crossentropy(fake_y, fake_output)
 
 def generator_accuracy(fake_output):
     return tf.keras.metrics.binary_accuracy(tf.ones_like(fake_output), fake_output)
