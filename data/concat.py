@@ -6,9 +6,6 @@ import emnist
 # Meh functions
 from typing import *
 
-# Cool functions
-#from data.data import *
-
 def _local_get_img():
     x, y = emnist.extract_training_samples('balanced')
     x = x[0:50]
