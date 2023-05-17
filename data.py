@@ -2,7 +2,7 @@ from typing import *
 import tensorflow as tf
 import emnist
 
-BATCH_SIZE = 128
+BATCH_SIZE = 256
 SHUFFLE_BUFFER_SIZE = 1024
 SHUFFLE_SEED = 69420
 
@@ -12,7 +12,7 @@ def reshape_data(x : tf.Tensor, y : tf.Tensor) -> tf.Tensor:
     x = tf.reshape(x, (28, 28, 1))
     return x, x
 
-def build_dataset():
+def build_dataset(no_validation:bool = False):
     x, y = emnist.extract_training_samples('balanced')
     
     x = x / 255.0
@@ -21,8 +21,12 @@ def build_dataset():
         tf.data.Dataset.from_tensor_slices((x, x))
         .map(reshape_data)
         .shuffle(buffer_size=SHUFFLE_BUFFER_SIZE, seed=SHUFFLE_SEED)
-        .batch(batch_size=BATCH_SIZE)
+        .batch(batch_size=BATCH_SIZE, drop_remainder=True)
     )
+    
+    if no_validation:
+        print(f'Loaded {tf.data.experimental.cardinality(data)} data batches and no validation data.')
+        return data
     
     train_samples = round(tf.data.experimental.cardinality(data).numpy() * (1 - TEST_SPLIT))
     train_ds = data.take(train_samples)
