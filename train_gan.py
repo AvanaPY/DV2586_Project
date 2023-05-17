@@ -5,27 +5,30 @@ from model.generator import discriminator_loss, discriminator_accuracy, generato
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-from data.data import build_dataset, BATCH_SIZE
+from data.data import build_dataset, BATCH_SIZE, build_categorical_dataset
 
 NOISE_DIM = 100
 
 plt.ion()
 
 @tf.function
-def train_step(images, train_model_indicator : int):
-    noise = tf.random.normal([BATCH_SIZE, NOISE_DIM])
+def train_step(images, labels, n_classes, train_model_indicator : int):
+    noise_data = [create_categorised_noise(7, n_classes) for _ in range(BATCH_SIZE)]
+    noise = np.concatenate([n[0] for n in noise_data])
+    noise_y = np.concatenate([n[1] for n in noise_data])
+    # noise, noise_y = create_categorised_noise(7, n_classes)
     
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
         generated_images = generator(noise, training=True)
         
-        real = discriminator(images, training=True)
-        fake = discriminator(generated_images, training=True)
+        real_preds = discriminator(images, training=True)
+        fake_preds = discriminator(generated_images, training=True)
         
-        gen_loss = generator_loss(fake)
-        disc_loss = discriminator_loss(real, fake)
+        disc_loss = discriminator_loss(real_preds, labels, fake_preds, noise_y)
+        gen_loss = generator_loss(fake_preds, noise_y)
         
-        gen_accuracy = generator_accuracy(fake)
-        disc_accuracy = discriminator_accuracy(real, fake)
+        # disc_accuracy = discriminator_accuracy(real_preds, labels, fake_preds)
+        # gen_accuracy = generator_accuracy(fake_preds)
         
     gen_grads = gen_tape.gradient(gen_loss, generator.trainable_variables)
     disc_grads = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
@@ -39,13 +42,23 @@ def train_step(images, train_model_indicator : int):
     # else:
     #     discriminator_optimizer.apply_gradients(zip(disc_grads, discriminator.trainable_variables))
     
+    gen_accuracy = 0
+    disc_accuracy = 0
     ret = [
         [tf.math.reduce_mean(gen_loss), tf.math.reduce_mean(gen_accuracy)], 
         [tf.math.reduce_mean(disc_loss), tf.math.reduce_mean(disc_accuracy)]
     ]
     return ret
     
-def train(train_step, checkpoint_prefix, checkpoint, epochs, data, gen_seed):
+def train(train_step, 
+          heckpoint_prefix, 
+          checkpoint, 
+          epochs, 
+          data, 
+          gen_seed, 
+          gen_ys, 
+          n_classes,
+          char_map):
     def get_key_create_not_exists(d : dict, key : any):
         if d.get(key, None) == None:
             d[key] = []
@@ -63,20 +76,20 @@ def train(train_step, checkpoint_prefix, checkpoint, epochs, data, gen_seed):
     train_disc_indicator = tf.Variable(1)
     data_cardinality = tf.data.experimental.cardinality(data)
     
-    fig = plt.figure(figsize=(6, 6))
+    fig = plt.figure(figsize=(10, 12))
     for epoch in range(1, epochs + 1):
         print(f'Epoch {epoch:2}/{epochs:}')
         
         metrics = {}
         for i, batch in enumerate(data):
-            x, _ = batch
+            x, y = batch
 
             f_turn = train_gen_indicator if epoch % 2 == 0 else train_disc_indicator
             s_turn = train_gen_indicator if epoch % 2 == 1 else train_disc_indicator
             if (i // 25) % 2 == 0:
-                m = train_step(x, f_turn)
+                m = train_step(x, y, n_classes, f_turn)
             else:
-                m = train_step(x, s_turn)
+                m = train_step(x, y, n_classes, s_turn)
 
             join_metrics(metrics, m)
             
@@ -101,28 +114,41 @@ def train(train_step, checkpoint_prefix, checkpoint, epochs, data, gen_seed):
         
         fig_epoch = len(os.listdir(save_fig_dir)) + 1
         
+        # Update figure with information
         plt.clf()
-        fig = plt.gcf()
         fig.suptitle(f'Epoch {fig_epoch}')
         imgs = generator(gen_seed, training=False)
         for i in range(imgs.shape[0]):
-            plt.subplot(5, 5, i+1)
+            plt.subplot(6, 6, i+1)
             plt.imshow(imgs[i,:,:,0], cmap='gray')
+            plt.title(f'{gen_ys[i]} ({char_map[gen_ys[i]]})')
             plt.axis('off')
         plt.pause(1)
         fig.savefig(os.path.join(save_fig_dir, f'epoch_{fig_epoch}.png'))
-        
+
+def create_categorised_noise(noise_img_dim : int, n_classes : int):
+    n_classes -= 1
+    noise_imgs = np.zeros(shape=(n_classes, noise_img_dim, noise_img_dim, n_classes))
+    noise_y = np.arange(n_classes) + 1
+    for i in range(n_classes):
+        noise_imgs[i,:,:,i] = np.random.uniform(low=0, high=1,size=(noise_img_dim, noise_img_dim))
+    return noise_imgs, noise_y
+
 if __name__ == '__main__':
-    generator = build_generator_model()
-    discriminator = build_discriminator_model()
+    ds, char_map = build_categorical_dataset()
+    n_classes = len(char_map.keys())
+    noise_imgs, noise_y = create_categorised_noise(7, n_classes)
+    
+    generator = build_generator_model(7, n_classes)
+    discriminator = build_discriminator_model(n_classes)
     
     generator.summary()
     discriminator.summary()
     
-    generator_optimizer = tf.keras.optimizers.RMSprop(2e-5)
+    generator_optimizer = tf.keras.optimizers.Adam(1e-4)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-5)
     
-    checkpoint_dir = './checkpoints/run3'
+    checkpoint_dir = './checkpoints/run14'
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
     checkpoint = tf.train.Checkpoint(
         generator_optimizer=generator_optimizer,
@@ -132,11 +158,18 @@ if __name__ == '__main__':
     checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
     
     tf.random.set_seed(69420)
-    gen_seed = tf.random.normal([25, NOISE_DIM])
+    gen_seed, gen_ys = create_categorised_noise(7, n_classes)
     
     epochs = 100
-    data = build_dataset(no_validation=True)
-    train(train_step, checkpoint_prefix, checkpoint, epochs, data, gen_seed)
+    train(train_step, 
+          checkpoint_prefix, 
+          checkpoint, 
+          epochs, 
+          ds, 
+          gen_seed, 
+          gen_ys, 
+          n_classes,
+          char_map)
     
     imgs = generator(gen_seed, training=False)
     plt.clf()
