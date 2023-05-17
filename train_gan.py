@@ -32,6 +32,8 @@ def train_step(images, train_model_indicator : int):
     
     generator_optimizer.apply_gradients(zip(gen_grads, generator.trainable_variables))
     discriminator_optimizer.apply_gradients(zip(disc_grads, discriminator.trainable_variables))
+    
+    # If we wish to train the generator and discriminator separately, one can use these lines of code
     # if train_model_indicator == 0:
     #     generator_optimizer.apply_gradients(zip(gen_grads, generator.trainable_variables))
     # else:
