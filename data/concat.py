@@ -40,7 +40,6 @@ def vertical(lst:list[list[np.ndarray]]):
 # Test section
 if __name__ == "__main__":
     x, y = _local_get_img()
-    del x[4][1]
     concat = vertical(x)
     plt.imshow(concat, interpolation="nearest", cmap="gray")
     plt.show()
