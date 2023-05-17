@@ -4,8 +4,8 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import keras_tuner as ktuner
 
-from data import build_dataset
-from model import build_autoencoder, load_autoencoder, save_autoencoder
+from data.data import build_dataset
+from model.model import build_autoencoder, load_autoencoder, save_autoencoder
 
 filepath = 'models/emnist_ae'
 

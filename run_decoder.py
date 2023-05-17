@@ -5,8 +5,8 @@ import keras
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
-from model import load_autoencoder
-from data import build_dataset
+from model.model import load_autoencoder
+from data.data import build_dataset
 
 def update_plot():
     out = ae.decoder(data)

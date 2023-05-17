@@ -1,11 +1,11 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-from generator import build_discriminator_model, build_generator_model
-from generator import discriminator_loss, discriminator_accuracy, generator_loss, generator_accuracy
+from model.generator import build_discriminator_model, build_generator_model
+from model.generator import discriminator_loss, discriminator_accuracy, generator_loss, generator_accuracy
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-from data import build_dataset, BATCH_SIZE
+from data.data import build_dataset, BATCH_SIZE
 
 NOISE_DIM = 100
 
