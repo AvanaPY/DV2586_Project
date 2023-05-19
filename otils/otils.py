@@ -22,10 +22,10 @@ space = np.array([[0 for i in range(28)] for i in range(28)]) # Constant for "em
 Local function to load the n first samples from the emnist dataset.
 
 Input:
-    n       (int): number of samples [default 50]
+    n                  (int): number of samples [default 50]
 Output:
-    xt     (list): the input values for the n first samples from the dataset.
-    yt     (list): the labels for the n first samples fro mthe dataset.
+    xt                (list): the input values for the n first samples from the dataset.
+    yt                (list): the labels for the n first samples fro mthe dataset.
 
 """
 def _local_get_img(n:int=50):
@@ -47,9 +47,9 @@ Function for combining a list of 28x28 sized iamges into a 28x(n*28) immge
 where n is the length of the list.
 
 Input:
-    lst             (lsit): a list of 28x28 ndarrays representing images,
+    lst                 (list): a list of 28x28 ndarrays representing images,
 Output:
-    full_row  (np.ndarray): an ndarray representing the concatenated image.
+    full_row      (np.ndarray): an ndarray representing the concatenated image.
 
 """
 def horizontal(lst:list[np.ndarray]):
@@ -64,12 +64,13 @@ Function for combining a list of 28x28 sized iamges into a 28x(n*28) immge
 where n is the length of the list.
 
 Input:
-    lst             (lsit): a list of 28x28 ndarrays representing images,
+    lst                 (list): a list of 28x28 ndarrays representing images
+    right               (bool): Tells if we should align to left or right
 Output:
-    finale    (np.ndarray): an ndarray representing the concatenated image.
+    finale        (np.ndarray): an ndarray representing the concatenated image.
 
 """
-def vertical(lst:list[list[np.ndarray]], center:bool=False):
+def vertical(lst:list[list[np.ndarray]], center:bool=False, right:bool=True):
     # Find the longest row in the list, this will be our "page width"
     lrg = max([len(x) for x in lst])
     
@@ -78,7 +79,7 @@ def vertical(lst:list[list[np.ndarray]], center:bool=False):
     for i, item in enumerate(lst):
         # If the list is shorter than the page width, insert blank spaces next to it until it is
         if len(item) < lrg:
-            item = centering(item, lrg - len(item)) if center else fill(item, lrg - len(item))
+            item = centering(lst=item, diff=lrg - len(item)) if center else fill(lst=item, diff=lrg - len(item),right=right)
         # Turn the current list into one image, then concatenate vertically.
         finale = horizontal(item) if i == 0 else np.concatenate((finale, horizontal(item)), axis=0)
     return finale
@@ -87,9 +88,9 @@ def vertical(lst:list[list[np.ndarray]], center:bool=False):
 Fuinction for padding the edges of an image.
 
 Input:
-    img     (np.ndarray): an array representing the image to be appended.
-    height         (int): the number of characters the image should be in height
-    width   	   (int): the number of characters the image should be in width
+    img          (np.ndarray): an array representing the image to be appended.
+    height              (int): the number of characters the image should be in height
+    width   	        (int): the number of characters the image should be in width
 Output:
 """
 def padding(img:np.ndarray, height:int, width:int):
@@ -111,15 +112,31 @@ def padding(img:np.ndarray, height:int, width:int):
 
     return img
 
+"""
+Function for filling an uneven row to be centered
+Input:
+    lst             (list): list to be filled
+    diff             (int): how many spaces are needed
+Ouptut:
+    lst             (list): cnetered list
+"""
 def centering(lst:list[np.ndarray], diff:int):
     for i in range(diff):
         lst.append(space) if i % 2 == 0 else lst.insert(0, space)
     return lst
         
-
-def fill(lst:list[np.ndarray], diff:int):
+"""
+Function for filling an uneven row to be aligned right or left
+Input:
+    lst             (list): list to be filled
+    diff             (int): how many spaces are needed
+    right           (bool): Tells if we should align to left or right
+Ouptut:
+    lst             (list): filled list
+"""
+def fill(lst:list[np.ndarray], diff:int, right:bool=True):
     for j in range(diff):
-        lst.append(space)
+        lst.append(space) if right else lst.insert(0,space)
     return lst
 
 # Test section
@@ -128,7 +145,7 @@ if __name__ == "__main__":
     del x[3][2]
     del x[3][1]
     del x[4][1]
-    concat = vertical(x, center=True)
+    concat = vertical(x, center=False, right=False)
     print(concat.shape)
     # concat = padding(concat, 8, 12)
     # print(concat.shape)
