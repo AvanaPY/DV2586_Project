@@ -69,7 +69,7 @@ Output:
     finale    (np.ndarray): an ndarray representing the concatenated image.
 
 """
-def vertical(lst:list[list[np.ndarray]]):
+def vertical(lst:list[list[np.ndarray]], center:bool=False):
     # Find the longest row in the list, this will be our "page width"
     lrg = max([len(x) for x in lst])
     
@@ -78,9 +78,7 @@ def vertical(lst:list[list[np.ndarray]]):
     for i, item in enumerate(lst):
         # If the list is shorter than the page width, insert blank spaces next to it until it is
         if len(item) < lrg:
-            for j in range(lrg - len(item)):
-                item.append(space)
-        
+            item = centering(item, lrg - len(item)) if center else fill(item, lrg - len(item))
         # Turn the current list into one image, then concatenate vertically.
         finale = horizontal(item) if i == 0 else np.concatenate((finale, horizontal(item)), axis=0)
     return finale
@@ -113,12 +111,26 @@ def padding(img:np.ndarray, height:int, width:int):
 
     return img
 
+def centering(lst:list[np.ndarray], diff:int):
+    for i in range(diff):
+        lst.append(space) if i % 2 == 0 else lst.insert(0, space)
+    return lst
+        
+
+def fill(lst:list[np.ndarray], diff:int):
+    for j in range(diff):
+        lst.append(space)
+    return lst
+
 # Test section
 if __name__ == "__main__":
     x, y = _local_get_img()
-    concat = vertical(x)
+    del x[3][2]
+    del x[3][1]
+    del x[4][1]
+    concat = vertical(x, center=True)
     print(concat.shape)
-    padded = padding(concat, 8, 12)
-    print(padded.shape)
-    plt.imshow(padded, interpolation="nearest", cmap="gray")
+    # concat = padding(concat, 8, 12)
+    # print(concat.shape)
+    plt.imshow(concat, interpolation="nearest", cmap="gray")
     plt.show()
