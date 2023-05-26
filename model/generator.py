@@ -6,7 +6,11 @@ from keras.models import Sequential, Model
 from keras.layers import Conv2D, Conv2DTranspose, Dropout, Dense, BatchNormalization, LeakyReLU, Reshape, Flatten
 
 def build_generator_model(noise_img_dim : int, n_classes : int):
-    model = Sequential()
+    model = Sequential() 
+    model.add(Flatten())
+    model.add(Dense(7*7*8, activation='relu'))
+    
+    model.add(Reshape((7, 7, -1)))
     model.add(Conv2DTranspose(filters=32, kernel_size=3, strides=2, padding='same', use_bias=False))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
@@ -25,12 +29,12 @@ def build_generator_model(noise_img_dim : int, n_classes : int):
     
     model.add(Conv2DTranspose(filters=1, kernel_size=1, strides=1, padding='same', use_bias=False, activation='sigmoid'))
     
-    model.build((None, noise_img_dim, noise_img_dim, n_classes-1))
+    model.build((None, n_classes, noise_img_dim))
     return model
 
 def build_discriminator_model(n_classes : int):
     model = Sequential()
-    model.add(Conv2D(filters=218, kernel_size=5, strides=2, padding='same', input_shape=(28, 28, 1)))
+    model.add(Conv2D(filters=256, kernel_size=5, strides=2, padding='same', input_shape=(28, 28, 1)))
     model.add(LeakyReLU())
     model.add(Dropout(0.2))
     
@@ -68,10 +72,10 @@ def generator_accuracy(fake_output):
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    generator = build_generator_model()
+    generator = build_generator_model(6, 27)
     generator.summary()
     
-    discriminator = build_discriminator_model()
+    discriminator = build_discriminator_model(27)
     discriminator.summary()
     
     try:

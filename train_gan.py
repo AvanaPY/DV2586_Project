@@ -7,39 +7,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.ion()
 from data.data import build_dataset, BATCH_SIZE, build_categorical_dataset
-from utils.noise import create_categorised_noise
+from utils import create_categorised_noise, images_to_gif
 
 N_CLASSES       = 27
-NOISE_IMG_DIMS  = 7
+NOISE_IMG_DIMS  = 16
 
 @tf.function
 def train_step(images, labels, n_classes, train_model_indicator : int):
     noise_data = [create_categorised_noise(NOISE_IMG_DIMS, n_classes) for _ in range(BATCH_SIZE)]
     noise = np.concatenate([n[0] for n in noise_data])
     noise_y = np.concatenate([n[1] for n in noise_data])
+    
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
         generated_images = generator(noise, training=True)
-        
         real_preds = discriminator(images, training=True)
         fake_preds = discriminator(generated_images, training=True)
         
         disc_loss = discriminator_loss(real_preds, labels, fake_preds, noise_y)
-        gen_loss = generator_loss(fake_preds, noise_y)
         
+        # Accuracy if we want that, gotta update the functions to make them compatible uwu
         # disc_accuracy = discriminator_accuracy(real_preds, labels, fake_preds)
         # gen_accuracy = generator_accuracy(fake_preds)
         
-    gen_grads = gen_tape.gradient(gen_loss, generator.trainable_variables)
-    disc_grads = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+        disc_grads = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+        discriminator_optimizer.apply_gradients(zip(disc_grads, discriminator.trainable_variables))
     
-    generator_optimizer.apply_gradients(zip(gen_grads, generator.trainable_variables))
-    discriminator_optimizer.apply_gradients(zip(disc_grads, discriminator.trainable_variables))
-    
-    # If we wish to train the generator and discriminator separately, one can use these lines of code
-    # if train_model_indicator == 0:
-    #     generator_optimizer.apply_gradients(zip(gen_grads, generator.trainable_variables))
-    # else:
-    #     discriminator_optimizer.apply_gradients(zip(disc_grads, discriminator.trainable_variables))
+    with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
+        generated_images = generator(noise, training=True)
+        fake_preds = discriminator(generated_images, training=True)
+        gen_loss = generator_loss(fake_preds, noise_y)
+        
+        gen_grads = gen_tape.gradient(gen_loss, generator.trainable_variables)
+        generator_optimizer.apply_gradients(zip(gen_grads, generator.trainable_variables))
     
     gen_accuracy = 0
     disc_accuracy = 0
@@ -50,7 +49,7 @@ def train_step(images, labels, n_classes, train_model_indicator : int):
     return ret
     
 def train(train_step, 
-          heckpoint_prefix, 
+          checkpoint_prefix, 
           checkpoint, 
           epochs, 
           data, 
@@ -101,10 +100,11 @@ def train(train_step,
             disc_loss = np.mean(metrics['disc_loss'])
             disc_acc = np.mean(metrics['disc_acc'])
             
-            print(f'\r{i+1:3} / {data_cardinality}[{"="*progress_ticks}>{" "*(bar_length-progress_ticks)}] Generator[Loss: {gen_loss:8.4f}, Accuracy:{gen_acc:6.4f}], Discriminator[Loss: {disc_loss:8.4f}, Accuracy:{disc_acc:6.4f}]', end='')
+            print(f'\r{i+1:3} / {data_cardinality}[{"="*progress_ticks}>{" "*(bar_length-progress_ticks)}] Generator[Loss: {gen_loss:8.4f}, Accuracy:{gen_acc:6.4f}], Discriminator[Loss: {disc_loss:8.4f}, Accuracy:{disc_acc:6.4f}]', end=' ')
         
         if epoch % 5 == 0:
             checkpoint.save(file_prefix=checkpoint_prefix)
+            print(f'Saved weights...', end=' ')
         print()
         
         save_fig_dir = os.path.join(checkpoint_prefix, 'a_imgs')
@@ -124,22 +124,23 @@ def train(train_step,
             plt.axis('off')
         plt.pause(1)
         fig.savefig(os.path.join(save_fig_dir, f'epoch_{fig_epoch}.png'))
+        images_to_gif(save_fig_dir, f'training.gif')
 
 if __name__ == '__main__':
     ds, char_map = build_categorical_dataset()
     
     noise_imgs, noise_y = create_categorised_noise(NOISE_IMG_DIMS, N_CLASSES)
     
-    generator = build_generator_model(NOISE_IMG_DIMS, N_CLASSES)
+    generator = build_generator_model(NOISE_IMG_DIMS, N_CLASSES-1)
     discriminator = build_discriminator_model(N_CLASSES)
     
     generator.summary()
     discriminator.summary()
     
-    generator_optimizer = tf.keras.optimizers.Adam(1e-3)
-    discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
+    generator_optimizer = tf.keras.optimizers.Adam(2e-4)
+    discriminator_optimizer = tf.keras.optimizers.Adam(5e-5)
     
-    checkpoint_dir = './checkpoints/run17'
+    checkpoint_dir = './checkpoints/run22'
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
     checkpoint = tf.train.Checkpoint(
         generator_optimizer=generator_optimizer,
