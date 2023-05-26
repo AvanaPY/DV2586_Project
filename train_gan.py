@@ -5,19 +5,18 @@ from model.generator import discriminator_loss, discriminator_accuracy, generato
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-from data.data import build_dataset, BATCH_SIZE, build_categorical_dataset
-
-NOISE_DIM = 100
-
 plt.ion()
+from data.data import build_dataset, BATCH_SIZE, build_categorical_dataset
+from utils.noise import create_categorised_noise
+
+N_CLASSES       = 27
+NOISE_IMG_DIMS  = 7
 
 @tf.function
 def train_step(images, labels, n_classes, train_model_indicator : int):
-    noise_data = [create_categorised_noise(7, n_classes) for _ in range(BATCH_SIZE)]
+    noise_data = [create_categorised_noise(NOISE_IMG_DIMS, n_classes) for _ in range(BATCH_SIZE)]
     noise = np.concatenate([n[0] for n in noise_data])
     noise_y = np.concatenate([n[1] for n in noise_data])
-    # noise, noise_y = create_categorised_noise(7, n_classes)
-    
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
         generated_images = generator(noise, training=True)
         
@@ -76,7 +75,7 @@ def train(train_step,
     train_disc_indicator = tf.Variable(1)
     data_cardinality = tf.data.experimental.cardinality(data)
     
-    fig = plt.figure(figsize=(10, 12))
+    fig = plt.figure(figsize=(5, 6))
     for epoch in range(1, epochs + 1):
         print(f'Epoch {epoch:2}/{epochs:}')
         
@@ -126,29 +125,21 @@ def train(train_step,
         plt.pause(1)
         fig.savefig(os.path.join(save_fig_dir, f'epoch_{fig_epoch}.png'))
 
-def create_categorised_noise(noise_img_dim : int, n_classes : int):
-    n_classes -= 1
-    noise_imgs = np.zeros(shape=(n_classes, noise_img_dim, noise_img_dim, n_classes))
-    noise_y = np.arange(n_classes) + 1
-    for i in range(n_classes):
-        noise_imgs[i,:,:,i] = np.random.uniform(low=0, high=1,size=(noise_img_dim, noise_img_dim))
-    return noise_imgs, noise_y
-
 if __name__ == '__main__':
     ds, char_map = build_categorical_dataset()
-    n_classes = len(char_map.keys())
-    noise_imgs, noise_y = create_categorised_noise(7, n_classes)
     
-    generator = build_generator_model(7, n_classes)
-    discriminator = build_discriminator_model(n_classes)
+    noise_imgs, noise_y = create_categorised_noise(NOISE_IMG_DIMS, N_CLASSES)
+    
+    generator = build_generator_model(NOISE_IMG_DIMS, N_CLASSES)
+    discriminator = build_discriminator_model(N_CLASSES)
     
     generator.summary()
     discriminator.summary()
     
-    generator_optimizer = tf.keras.optimizers.Adam(1e-4)
-    discriminator_optimizer = tf.keras.optimizers.Adam(1e-5)
+    generator_optimizer = tf.keras.optimizers.Adam(1e-3)
+    discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
     
-    checkpoint_dir = './checkpoints/run14'
+    checkpoint_dir = './checkpoints/run17'
     checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
     checkpoint = tf.train.Checkpoint(
         generator_optimizer=generator_optimizer,
@@ -158,7 +149,7 @@ if __name__ == '__main__':
     checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
     
     tf.random.set_seed(69420)
-    gen_seed, gen_ys = create_categorised_noise(7, n_classes)
+    gen_seed, gen_ys = create_categorised_noise(NOISE_IMG_DIMS, N_CLASSES)
     
     epochs = 100
     train(train_step, 
@@ -168,13 +159,13 @@ if __name__ == '__main__':
           ds, 
           gen_seed, 
           gen_ys, 
-          n_classes,
+          N_CLASSES,
           char_map)
     
     imgs = generator(gen_seed, training=False)
     plt.clf()
     for i in range(imgs.shape[0]):
-        plt.subplot(5, 5, i+1)
+        plt.subplot(6, 6, i+1)
         plt.imshow(imgs[i,:,:,0], cmap='gray')
     
     plt.show(block=True)
