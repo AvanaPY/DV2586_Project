@@ -77,20 +77,20 @@ def build_autoencoder(hp : kt.HyperParameters) -> AutoEncoder:
     encoder.add(Conv2D(1, kernel_size=5, strides=1, padding='valid', activation='relu'))
     encoder.add(Flatten())
     encoder.add(Dense(LATENT_DIMS, activation='tanh'))
-    encoder.add(Dropout(DROPOUT_RATE))
+    
     # Decoder
     decoder = Sequential(name='Decoder')
     decoder.add(Dense(100, activation='relu', name='DecoderStart'))
     decoder.add(Reshape(target_shape=(10, 10, 1)))
-    decoder.add(Conv2DTranspose(filters=32, kernel_size=5, strides=1, padding='valid', activation='relu'))
-    decoder.add(BatchNormalization(momentum=0.8))
     decoder.add(Conv2DTranspose(filters=128, kernel_size=5, strides=1, padding='valid', activation='relu'))
     decoder.add(BatchNormalization(momentum=0.8))
-    decoder.add(Conv2DTranspose(filters=32, kernel_size=5, strides=1, padding='valid', activation='relu'))
+    decoder.add(Conv2DTranspose(filters=64, kernel_size=5, strides=1, padding='valid', activation='relu'))
     decoder.add(BatchNormalization(momentum=0.8))
     decoder.add(Conv2DTranspose(filters=32, kernel_size=5, strides=1, padding='valid', activation='relu'))
     decoder.add(BatchNormalization(momentum=0.8))
-    decoder.add(Conv2DTranspose(filters=32, kernel_size=3, strides=1, padding='valid', activation='relu'))
+    decoder.add(Conv2DTranspose(filters=16, kernel_size=5, strides=1, padding='valid', activation='relu'))
+    decoder.add(BatchNormalization(momentum=0.8))
+    decoder.add(Conv2DTranspose(filters=16, kernel_size=3, strides=1, padding='valid', activation='relu'))
     decoder.add(Conv2D(filters=1, kernel_size=1, strides=1, padding='valid', activation='sigmoid'))
     
     # Model

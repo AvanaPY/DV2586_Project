@@ -38,7 +38,7 @@ def build_discriminator_model(n_classes : int):
     model.add(LeakyReLU())
     model.add(Dropout(0.2))
     
-    model.add(Conv2D(filters=64, kernel_size=5, strides=2, padding='same', input_shape=(28, 28, 1)))
+    model.add(Conv2D(filters=64, kernel_size=5, strides=2, padding='same'))
     model.add(LeakyReLU())
     model.add(Dropout(0.2))
     

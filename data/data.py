@@ -4,7 +4,7 @@ import emnist
 import string
 
 N_CLASSES = 27
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 SHUFFLE_BUFFER_SIZE = 1024
 SHUFFLE_SEED = 69420
 
@@ -44,7 +44,7 @@ def build_dataset(no_validation:bool = False):
     
     return train_ds, test_ds
 
-def build_categorical_dataset(no_validation : bool = False):
+def build_categorical_dataset():
     x, y = emnist.extract_training_samples('letters')
 
     x = x / 255.0

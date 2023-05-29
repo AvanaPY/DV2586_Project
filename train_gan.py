@@ -4,13 +4,16 @@ from model.generator import build_discriminator_model, build_generator_model
 from model.generator import discriminator_loss, discriminator_accuracy, generator_loss, generator_accuracy
 import tensorflow as tf
 import numpy as np
+import time
+import json
 import matplotlib.pyplot as plt
 plt.ion()
 from data.data import build_dataset, BATCH_SIZE, build_categorical_dataset
 from utils import create_categorised_noise, images_to_gif
+from utils import merge_metric_objects
 
 N_CLASSES       = 27
-NOISE_IMG_DIMS  = 16
+NOISE_IMG_DIMS  = 4
 
 @tf.function
 def train_step(images, labels, n_classes, train_model_indicator : int):
@@ -49,7 +52,7 @@ def train_step(images, labels, n_classes, train_model_indicator : int):
     return ret
     
 def train(train_step, 
-          checkpoint_prefix, 
+          checkpoint_path, 
           checkpoint, 
           epochs, 
           data, 
@@ -75,10 +78,23 @@ def train(train_step,
     data_cardinality = tf.data.experimental.cardinality(data)
     
     fig = plt.figure(figsize=(5, 6))
+    metrics = {
+        'generator' : {
+            'loss': [],
+            'accuracy' : []
+        },
+        'discriminator' : {
+            'loss': [],
+            'accuracy' : []
+        }
+    }
+    checkpoint_save_path = os.path.join(checkpoint_dir, 'ckpts', 'ckpt')
+    
     for epoch in range(1, epochs + 1):
+        epoch_start = time.time()
         print(f'Epoch {epoch:2}/{epochs:}')
         
-        metrics = {}
+        epoch_metrics = {}
         for i, batch in enumerate(data):
             x, y = batch
 
@@ -89,25 +105,26 @@ def train(train_step,
             else:
                 m = train_step(x, y, n_classes, s_turn)
 
-            join_metrics(metrics, m)
+            join_metrics(epoch_metrics, m)
             
             bar_length = 50
             progress = (i+1) / data_cardinality
             progress_ticks = int(bar_length * progress)
             
-            gen_loss = np.mean(metrics['gen_loss'])
-            gen_acc = np.mean(metrics['gen_acc'])
-            disc_loss = np.mean(metrics['disc_loss'])
-            disc_acc = np.mean(metrics['disc_acc'])
+            gen_loss = np.mean(epoch_metrics['gen_loss'])
+            gen_acc = np.mean(epoch_metrics['gen_acc'])
+            disc_loss = np.mean(epoch_metrics['disc_loss'])
+            disc_acc = np.mean(epoch_metrics['disc_acc'])
             
-            print(f'\r{i+1:3} / {data_cardinality}[{"="*progress_ticks}>{" "*(bar_length-progress_ticks)}] Generator[Loss: {gen_loss:8.4f}, Accuracy:{gen_acc:6.4f}], Discriminator[Loss: {disc_loss:8.4f}, Accuracy:{disc_acc:6.4f}]', end=' ')
+            epoch_time = time.time() - epoch_start
+            print(f'\r{i+1:3} / {data_cardinality}[{"="*progress_ticks}>{" "*(bar_length-progress_ticks)}] {epoch_time:.0f}s Generator[Loss: {gen_loss:8.4f}, Accuracy:{gen_acc:6.4f}], Discriminator[Loss: {disc_loss:8.4f}, Accuracy:{disc_acc:6.4f}]', end=' ')
         
         if epoch % 5 == 0:
-            checkpoint.save(file_prefix=checkpoint_prefix)
+            checkpoint.save(file_prefix=checkpoint_save_path)
             print(f'Saved weights...', end=' ')
         print()
         
-        save_fig_dir = os.path.join(checkpoint_prefix, 'a_imgs')
+        save_fig_dir = os.path.join(checkpoint_path, 'imgs')
         if not os.path.exists(save_fig_dir):
             os.makedirs(save_fig_dir)
         
@@ -125,6 +142,13 @@ def train(train_step,
         plt.pause(1)
         fig.savefig(os.path.join(save_fig_dir, f'epoch_{fig_epoch}.png'))
         images_to_gif(save_fig_dir, f'training.gif')
+        
+        metrics['generator']['loss'].append(float(gen_loss))
+        metrics['generator']['accuracy'].append(float(gen_acc))
+        metrics['discriminator']['loss'].append(float(disc_loss))
+        metrics['discriminator']['accuracy'].append(float(disc_acc))
+
+    return metrics
 
 if __name__ == '__main__':
     ds, char_map = build_categorical_dataset()
@@ -134,34 +158,47 @@ if __name__ == '__main__':
     generator = build_generator_model(NOISE_IMG_DIMS, N_CLASSES-1)
     discriminator = build_discriminator_model(N_CLASSES)
     
-    generator.summary()
-    discriminator.summary()
+    generator_optimizer = tf.keras.optimizers.Adam(1e-4)
+    discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
     
-    generator_optimizer = tf.keras.optimizers.Adam(2e-4)
-    discriminator_optimizer = tf.keras.optimizers.Adam(5e-5)
-    
-    checkpoint_dir = './checkpoints/run22'
-    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+    checkpoint_dir = './checkpoints/run32'
     checkpoint = tf.train.Checkpoint(
         generator_optimizer=generator_optimizer,
         discriminator_optimizer=discriminator_optimizer,
         generator=generator,
         discriminator=discriminator)
-    checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
     
+    try:
+        checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
+    except:
+        print(f'ERROR: Failed to restore weights.')
+        exit(0)
+        
     tf.random.set_seed(69420)
     gen_seed, gen_ys = create_categorised_noise(NOISE_IMG_DIMS, N_CLASSES)
     
-    epochs = 100
-    train(train_step, 
-          checkpoint_prefix, 
-          checkpoint, 
-          epochs, 
-          ds, 
-          gen_seed, 
-          gen_ys, 
-          N_CLASSES,
-          char_map)
+    epochs = 50
+    metrics = train(train_step, 
+        checkpoint_dir, 
+        checkpoint, 
+        epochs, 
+        ds, 
+        gen_seed, 
+        gen_ys, 
+        N_CLASSES,
+        char_map)
+    # Load previous metrics 
+    try:
+        json_file_path = os.path.join(checkpoint_dir, 'metrics.json')
+        if os.path.exists(json_file_path):
+            with open(json_file_path, 'r') as f:
+                obj = json.load(f)
+                metrics = merge_metric_objects(metrics, obj)
+    except Exception as e:
+        print(f'Failed to merge dictionaries: {e}')
+            
+    with open(json_file_path, 'w') as f:
+        json.dump(metrics, f)
     
     imgs = generator(gen_seed, training=False)
     plt.clf()
