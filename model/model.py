@@ -107,7 +107,7 @@ def final_encoder(LEARNING_RATE : kt.HyperParameter, encoder : Model, decoder : 
     
     optimizer = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE)
     loss = tf.keras.losses.MeanSquaredError()
-    metrics = [] # For the love of god future Emil, don't use accuracy like you have done twice
+    metrics = [] # For the love of god future Emil, don't use accuracy like you have done twice (Do it //Sam)
     
     model.compile(
         optimizer=optimizer,
