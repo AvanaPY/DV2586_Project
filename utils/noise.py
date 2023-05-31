@@ -1,9 +1,7 @@
 from typing import *
 import numpy as np
 
-empty_character = np.zeros(shape=(28, 28))
-
-def create_categorised_noise(noise_dims : int, n_classes : int):
+def create_categorised_noise(noise_dims : int, n_classes : int, seed : int = None):
     """
         Generates one noise image per class. 
         
@@ -17,6 +15,7 @@ def create_categorised_noise(noise_dims : int, n_classes : int):
         (noise, noise_y) : Tuple[np.ndarray, np.ndarry]
             Tuple of noise images and noise labels.
     """
+    np.random.seed(seed)
     n_classes -= 1
     noise = np.zeros(shape=(n_classes, n_classes, noise_dims))
     noise_y = np.arange(n_classes) + 1
@@ -24,15 +23,12 @@ def create_categorised_noise(noise_dims : int, n_classes : int):
         noise[i,i,:] = np.random.uniform(low=-1, high=1,size=noise_dims)
     return noise, noise_y
 
-def str_to_noise(s : str, char_map : Dict[str, int], noise_dims : int, n_classes : int):
-    words = s.split(' ')
-    noises = []
-    for word in words:
-        noise = chars_to_noise(word, char_map, noise_dims, n_classes)
-        noises.append(noise)
-    return noises
-
-def chars_to_noise(chars : str, char_map : Dict[str, int], noise_dims : int, n_classes : int):
+def chars_to_noise(chars : str, 
+                   char_map : Dict[str, int], 
+                   noise_dims : int, 
+                   n_classes : int,
+                   seed : int = None) -> np.ndarray:
+    np.random.seed(seed)
     n_classes -= 1
     n_chars = len(chars)
     noise = np.zeros(shape=(n_chars, n_classes, noise_dims))
