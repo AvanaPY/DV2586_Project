@@ -8,9 +8,11 @@ from keras.layers import Conv2D, Conv2DTranspose, Dropout, Dense, BatchNormaliza
 def build_generator_model(noise_img_dim : int, n_classes : int):
     model = Sequential(name='StureGAN_Generator') 
     model.add(Flatten())
-    model.add(Dense(7*7*8, activation='relu'))
+    model.add(Dense(7*7*8))
+    model.add(LeakyReLU())
     
     model.add(Reshape((7, 7, -1)))
+    
     model.add(Conv2DTranspose(filters=256, kernel_size=3, strides=2, padding='same', use_bias=False))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
