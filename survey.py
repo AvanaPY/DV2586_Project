@@ -4,10 +4,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import keras
 import matplotlib.pyplot as plt
+import numpy as np
 
 from data import build_categorical_dataset, create_pairs
 from utils.noise import chars_to_noise
 from model.generator import build_generator_model
+
+from PIL import Image
 
 if __name__ == '__main__':
     _, char_map = build_categorical_dataset()
@@ -33,12 +36,19 @@ if __name__ == '__main__':
             print(f'ERROR: Failed to restore weights: {e2}')
             exit(0)
     
-    
     pairs, classes = create_pairs(generator, 
                                   char_map, 
                                   n_class=26, 
                                   n_pairs=1)
     
+    image_folder = 'survey_images'
+    os.makedirs(image_folder, exist_ok=True)
+    for ((real_image, gen_image), c) in zip(pairs, classes):
+        c = char_map[c]
+        
+        Image.fromarray(real_image).save(os.path.join(image_folder, f'Real_{c}.png'))
+        Image.fromarray(gen_image).convert('L').save(os.path.join(image_folder, f'Gen_{c}.png'))
+
     plt.figure(figsize=(10, 4))
     for i, ((real_image, generated_image), c) in enumerate(zip(pairs, classes)):
         plt.subplot(4, 13, i+1)

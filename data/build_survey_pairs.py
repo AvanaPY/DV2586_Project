@@ -86,6 +86,10 @@ def _local_get_generated_character(generator : keras.Model,
     noise = chars_to_noise(c, char_map, noise_dim, n_classes)
     image = generator(noise)
     image = tf.squeeze(image)
+    image *= 255
+    image = tf.math.round(image)
+    image = tf.cast(image, tf.uint8)
+    image = image.numpy()
     return image
 
 if __name__ == "__main__":
