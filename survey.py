@@ -10,6 +10,7 @@ from data import build_categorical_dataset, create_pairs
 from utils.noise import chars_to_noise
 from model.generator import build_generator_model
 
+import PIL
 from PIL import Image
 
 if __name__ == '__main__':
@@ -46,8 +47,13 @@ if __name__ == '__main__':
     for ((real_image, gen_image), c) in zip(pairs, classes):
         c = char_map[c]
         
-        Image.fromarray(real_image).save(os.path.join(image_folder, f'Real_{c}.png'))
-        Image.fromarray(gen_image).convert('L').save(os.path.join(image_folder, f'Gen_{c}.png'))
+        real_image = Image.fromarray(real_image)
+        real_image = real_image.resize((256, 256), PIL.Image.NEAREST)
+        real_image.save(os.path.join(image_folder, f'Real_{c}.png'))
+        
+        gen_image = Image.fromarray(gen_image).convert('L')
+        gen_image = gen_image.resize((256, 256), PIL.Image.NEAREST)
+        gen_image.save(os.path.join(image_folder, f'Gen_{c}.png'))
 
     plt.figure(figsize=(10, 4))
     for i, ((real_image, generated_image), c) in enumerate(zip(pairs, classes)):
