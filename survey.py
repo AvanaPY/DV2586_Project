@@ -44,7 +44,7 @@ if __name__ == '__main__':
     
     image_folder = 'survey_images'
     os.makedirs(image_folder, exist_ok=True)
-    img_size = (512, 512)
+    img_size = (128, 128)
     for ((real_image, gen_image), c) in zip(pairs, classes):
         c = char_map[c]
         
