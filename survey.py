@@ -44,15 +44,16 @@ if __name__ == '__main__':
     
     image_folder = 'survey_images'
     os.makedirs(image_folder, exist_ok=True)
+    img_size = (1024, 1024)
     for ((real_image, gen_image), c) in zip(pairs, classes):
         c = char_map[c]
         
         real_image = Image.fromarray(real_image)
-        real_image = real_image.resize((256, 256), PIL.Image.NEAREST)
+        real_image = real_image.resize(img_size, PIL.Image.NEAREST)
         real_image.save(os.path.join(image_folder, f'Real_{c}.png'))
         
         gen_image = Image.fromarray(gen_image).convert('L')
-        gen_image = gen_image.resize((256, 256), PIL.Image.NEAREST)
+        gen_image = gen_image.resize(img_size, PIL.Image.NEAREST)
         gen_image.save(os.path.join(image_folder, f'Gen_{c}.png'))
 
     plt.figure(figsize=(10, 4))
