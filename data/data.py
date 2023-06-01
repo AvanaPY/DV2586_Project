@@ -4,7 +4,7 @@ import emnist
 import string
 
 N_CLASSES = 27
-BATCH_SIZE = 32
+BATCH_SIZE = 8
 SHUFFLE_BUFFER_SIZE = 1024
 SHUFFLE_SEED = 69420
 
@@ -30,6 +30,7 @@ def build_categorical_dataset():
         .map(reshape_data_categorical)
         .shuffle(buffer_size=SHUFFLE_BUFFER_SIZE, seed=SHUFFLE_SEED)
         .batch(batch_size=(N_CLASSES-1)*BATCH_SIZE, drop_remainder=True)
+        .take(100)
     )
     
     return ds, char_map

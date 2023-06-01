@@ -17,7 +17,7 @@ def create_categorised_noise(noise_dims : int, n_classes : int, seed : int = Non
     """
     np.random.seed(seed)
     n_classes -= 1
-    noise = np.zeros(shape=(n_classes, n_classes, noise_dims))
+    noise = np.ones(shape=(n_classes, n_classes, noise_dims)) * -1
     noise_y = np.arange(n_classes) + 1
     for i in range(n_classes):
         noise[i,i,:] = np.random.uniform(low=-1, high=1,size=noise_dims)
@@ -31,11 +31,11 @@ def chars_to_noise(chars : str,
     np.random.seed(seed)
     n_classes -= 1
     n_chars = len(chars)
-    noise = np.zeros(shape=(n_chars, n_classes, noise_dims))
+    noise = np.ones(shape=(n_chars, n_classes, noise_dims)) * -1
     for i, char in enumerate(chars):
         if char != ' ':
-            ci = char_map[char] - 1
-            noise[i,ci,:] = np.random.uniform(low=-1, high=1, size=noise_dims)
+            char_idx = char_map[char] - 1
+            noise[i,char_idx,:] = np.random.uniform(low=-1, high=1, size=noise_dims)
     
     return noise
 

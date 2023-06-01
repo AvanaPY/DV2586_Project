@@ -163,10 +163,10 @@ if __name__ == '__main__':
     generator = build_generator_model(NOISE_IMG_DIMS, N_CLASSES-1)
     discriminator = build_discriminator_model(N_CLASSES)
     
-    generator_optimizer = tf.keras.optimizers.Adam(1e-4)
+    generator_optimizer = tf.keras.optimizers.Adam(1e-3)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-5)
     
-    checkpoint_dir = './checkpoints/run41'
+    checkpoint_dir = './checkpoints/run46'
     checkpoint = tf.train.Checkpoint(
         generator_optimizer=generator_optimizer,
         discriminator_optimizer=discriminator_optimizer,
