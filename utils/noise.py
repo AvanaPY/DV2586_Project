@@ -20,7 +20,7 @@ def create_categorised_noise(noise_dims : int, n_classes : int, seed : int = Non
     noise = np.ones(shape=(n_classes, n_classes, noise_dims)) * -1
     noise_y = np.arange(n_classes) + 1
     for i in range(n_classes):
-        noise[i,i,:] = np.random.uniform(low=-1, high=1,size=noise_dims)
+        noise[i,i,:] = np.random.uniform(low=1, high=1,size=noise_dims)
     return noise, noise_y
 
 def chars_to_noise(chars : str, 

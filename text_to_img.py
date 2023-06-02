@@ -10,6 +10,7 @@ from utils import vertical
 from data.data import build_categorical_dataset
 import matplotlib.pyplot as plt
 from PIL import Image
+import string
 
 def text_to_img(s : str, 
                 generator : keras.models.Model, 
@@ -22,7 +23,7 @@ def text_to_img(s : str,
         row = []
         words = segment.split(' ')
         for word_i, word in enumerate(words):
-            noise = chars_to_noise(word, char_map, NOISE_IMG_DIM, N_CLASSES, seed=0)
+            noise = chars_to_noise(word, char_map, NOISE_IMG_DIM, N_CLASSES)
             imgs = generator(noise)
             imgs = [tf.squeeze(imgs[i], -1) for i in range(imgs.shape[0])]
             row.extend(imgs)
@@ -69,7 +70,7 @@ if __name__ == '__main__':
         exit(0)
         
     # c = 'The quick brown fox jumps over the lazy dog'
-    c = 'gan it write'
+    c = 'aaaaaaaa\ngggggggg\nffffffff\nvvvvvvvv'
     image = text_to_img(c, generator, char2idx, transparent=True)
     image.save('generated_image.png')
     

@@ -20,29 +20,25 @@ def train_step(images, labels, n_classes):
     noise_data = [create_categorised_noise(NOISE_IMG_DIMS, n_classes) for _ in range(BATCH_SIZE)]
     noise = np.concatenate([n[0] for n in noise_data])
     noise_y = np.concatenate([n[1] for n in noise_data])
+    generated_images = generator(noise, training=True)
     
     with tf.GradientTape() as disc_tape:
-        generated_images = generator(noise, training=True)
         real_preds = discriminator(images, training=True)
         fake_preds = discriminator(generated_images, training=True)
         
         disc_loss = discriminator_loss(real_preds, labels, fake_preds, noise_y)
         
-        # Accuracy if we want that, gotta update the functions to make them compatible uwu
-        # disc_accuracy = discriminator_accuracy(real_preds, labels, fake_preds)
-        # gen_accuracy = generator_accuracy(fake_preds)
-        
         disc_grads = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
         discriminator_optimizer.apply_gradients(zip(disc_grads, discriminator.trainable_variables))
     
     with tf.GradientTape() as gen_tape:
-        generated_images = generator(noise, training=True)
         fake_preds = discriminator(generated_images, training=True)
         gen_loss = generator_loss(fake_preds, noise_y)
         
         gen_grads = gen_tape.gradient(gen_loss, generator.trainable_variables)
         generator_optimizer.apply_gradients(zip(gen_grads, generator.trainable_variables))
     
+    # We used these and then it broke
     gen_accuracy = 0
     disc_accuracy = 0
     ret = [

@@ -18,8 +18,8 @@ if __name__ == '__main__':
 
     generator = build_generator_model(1, 26)
     
-    final_weights_path = 'model_weights/model1'
-    checkpoint_dir = './checkpoints/run41'
+    final_weights_path = 'model_weights/model2'
+    checkpoint_dir = './checkpoints/run46'
     checkpoint = tf.train.Checkpoint(
         generator=generator)
     
@@ -67,4 +67,5 @@ if __name__ == '__main__':
         plt.imshow(generated_image, cmap='gray')
         plt.title(f'G {char_map[c]}')
         plt.axis('off')
+    plt.savefig('alphabet.png')
     plt.show()
